@@ -288,7 +288,8 @@ function plotarCurva(C1, ke, t1, intervaloSug) {
 }
 
 async function gerarPDF() {
-  const doc = new jspdf.jsPDF();
+  const jsPDFRef = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+  const doc = new jsPDFRef();
 
   // CABEÇALHO PRO:
   const dataAtual = new Date();
