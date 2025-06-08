@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <h1>PedMonitorMed</h1>
@@ -34,17 +36,18 @@
     <option>Outra</option>
   </select>
   <br><br>
-  
-  <!-- NOVOS CAMPOS -->
+
   <label>Dose atual (mg): <input type="number" id="doseAtual" step="1"></label><br>
   <label>Intervalo atual:
     <select id="intervaloAtual">
+      <option>q4h</option>
       <option>q6h</option>
       <option>q8h</option>
       <option>q12h</option>
       <option>q24h</option>
       <option>q36h</option>
       <option>q48h</option>
+      <option>Perfusão contínua</option>
     </select>
   </label>
   <br><br>
@@ -83,6 +86,7 @@
     </div>
 
     <button type="button" onclick="calcular()">Calcular</button>
+    <button type="button" onclick="gerarPDF()">Gerar PDF</button>
   </form>
   
   <div id="resultado"></div>
