@@ -288,10 +288,22 @@ function plotarCurva(C1, ke, t1, intervaloSug) {
 }
 
 async function gerarPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF.jsPDF();
+  const doc = new jspdf.jsPDF();
 
-  // Capturar texto do resultado
+  // CABEÇALHO PRO:
+  const dataAtual = new Date();
+  const dataFormatada = dataAtual.toLocaleDateString();
+  const horaFormatada = dataAtual.toLocaleTimeString();
+
+  doc.setFontSize(12);
+  doc.text('Hospital Prof. Dr. Fernando Fonseca — Pediatria', 10, 10);
+  doc.text('PedMonitorMed — versão Beta', 10, 17);
+  doc.text(`Data: ${dataFormatada}  Hora: ${horaFormatada}`, 10, 24);
+
+  // Posição inicial para o conteúdo:
+  let posY = 35;
+
+  // Capturar texto do resultado:
   const resultado = document.getElementById('resultado');
 
   await html2canvas(resultado).then(canvas => {
@@ -300,19 +312,27 @@ async function gerarPDF() {
     const pdfWidth = doc.internal.pageSize.getWidth() - 20;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    doc.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+    doc.addImage(imgData, 'PNG', 10, posY, pdfWidth, pdfHeight);
   });
 
-  // Adicionar o gráfico
+  // Adicionar o gráfico:
   const canvasGrafico = document.getElementById('grafico');
   const graficoData = canvasGrafico.toDataURL('image/png');
-
-  const posY = doc.internal.pageSize.getHeight() - 100;
 
   doc.addPage();
   doc.text('Gráfico de Concentração', 10, 20);
   doc.addImage(graficoData, 'PNG', 10, 30, 180, 120);
 
-  // Salvar PDF
-  doc.save(`PedMonitorMed_${document.getElementById('idDoente').value}.pdf`);
+  // Detectar iOS PWA:
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+
+  if (isIOS && isInStandaloneMode) {
+    // No iPhone PWA → abrir em nova aba:
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  } else {
+    // Nos outros → download normal:
+    doc.save(`PedMonitorMed_${document.getElementById('idDoente').value}.pdf`);
+  }
 }
