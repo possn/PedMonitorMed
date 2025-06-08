@@ -86,49 +86,73 @@ function calcular() {
 
   if (ab !== 'tobra') {
     if (C1 > 0 && !isNaN(t1)) {
-      let ke_aprox;
-      if (tipoNivel === 'Pico' || tipoNivel === 'Vale') {
-        ke_aprox = (clCr >= 60) ? 0.12 : (clCr >= 30) ? 0.08 : 0.05;
+      if (intervaloAtual === 'Perfusão contínua') {
+        // Perfusão contínua → lógica especial:
+        const alvoMin = 20;
+        const alvoMax = 25;
+        const alvoMedio = (alvoMin + alvoMax) / 2;
+
+        resultadoHTML += `
+          <b>Perfusão contínua:</b><br>
+          <b>Concentração alvo:</b> ${alvoMin}-${alvoMax} mg/L<br>
+          <b>Concentração medida:</b> ${C1} mg/L<br>
+        `;
+
+        const delta = (alvoMedio / C1 - 1) * 100;
+        if (C1 >= alvoMin && C1 <= alvoMax) {
+          resultadoHTML += `<b>Sugestão:</b> Manter taxa de perfusão.<br>`;
+        } else if (C1 < alvoMin) {
+          resultadoHTML += `<b>Sugestão:</b> Aumentar taxa de perfusão em ${Math.abs(delta.toFixed(0))}%<br>`;
+        } else {
+          resultadoHTML += `<b>Sugestão:</b> Reduzir taxa de perfusão em ${Math.abs(delta.toFixed(0))}%<br>`;
+        }
+
+        plotarCurva(C1, 0, 0, 'Perfusão contínua');
       } else {
-        ke_aprox = (clCr >= 60) ? 0.1 : (clCr >= 30) ? 0.07 : 0.05;
+        // Lógica normal (não contínua):
+        let ke_aprox;
+        if (tipoNivel === 'Pico' || tipoNivel === 'Vale') {
+          ke_aprox = (clCr >= 60) ? 0.12 : (clCr >= 30) ? 0.08 : 0.05;
+        } else {
+          ke_aprox = (clCr >= 60) ? 0.1 : (clCr >= 30) ? 0.07 : 0.05;
+        }
+
+        const t12_aprox = Math.log(2) / ke_aprox;
+        const vd_aprox = dosePorToma / C1;
+
+        resultadoHTML += `
+          <b>Ke (estimado):</b> ${ke_aprox.toFixed(3)} h⁻¹<br>
+          <b>T1/2 (estimado):</b> ${t12_aprox.toFixed(2)} h<br>
+          <b>Vd (estimado):</b> ${vd_aprox.toFixed(2)} L<br>
+        `;
+        let intervaloSug = '';
+        let adminPorDia = 0;
+
+        if (ab === 'vanco') {
+          if (t12_aprox < 4) { intervaloSug = 'q4h'; adminPorDia = 6; }
+          else if (t12_aprox < 6) { intervaloSug = 'q6h'; adminPorDia = 4; }
+          else if (t12_aprox < 12) { intervaloSug = 'q8h'; adminPorDia = 3; }
+          else if (t12_aprox < 18) { intervaloSug = 'q12h'; adminPorDia = 2; }
+          else { intervaloSug = 'q24h'; adminPorDia = 1; }
+        } else if (ab === 'genta' || ab === 'amica') {
+          if (t12_aprox < 4) { intervaloSug = 'q24h'; adminPorDia = 1; }
+          else if (t12_aprox < 6) { intervaloSug = 'q36h'; adminPorDia = 0.67; }
+          else { intervaloSug = 'q48h'; adminPorDia = 0.5; }
+        }
+
+        const doseTotalDia = dosePorToma * adminPorDia;
+
+        resultadoHTML += `
+          <b>Intervalo sugerido:</b> ${intervaloSug}<br>
+          <b>Dose total diária sugerida:</b> ${doseTotalDia.toFixed(0)} mg/dia<br>
+          <b>Dose por toma:</b> ${dosePorToma.toFixed(0)} mg<br>
+        `;
+
+        const alvo = alvoTerap(ab, tipoInfeccao);
+        resultadoHTML += `<b>Alvo terapêutico recomendado:</b> ${alvo}<br>`;
+
+        plotarCurva(C1, ke_aprox, t1, intervaloSug);
       }
-
-      const t12_aprox = Math.log(2) / ke_aprox;
-      const vd_aprox = dosePorToma / C1;
-
-      resultadoHTML += `
-        <b>Ke (estimado):</b> ${ke_aprox.toFixed(3)} h⁻¹<br>
-        <b>T1/2 (estimado):</b> ${t12_aprox.toFixed(2)} h<br>
-        <b>Vd (estimado):</b> ${vd_aprox.toFixed(2)} L<br>
-      `;
-
-      let intervaloSug = '';
-      let adminPorDia = 0;
-
-      if (ab === 'vanco') {
-        if (t12_aprox < 4) { intervaloSug = 'q6h'; adminPorDia = 4; }
-        else if (t12_aprox < 6) { intervaloSug = 'q8h'; adminPorDia = 3; }
-        else if (t12_aprox < 12) { intervaloSug = 'q12h'; adminPorDia = 2; }
-        else { intervaloSug = 'q24h'; adminPorDia = 1; }
-      } else if (ab === 'genta' || ab === 'amica') {
-        if (t12_aprox < 4) { intervaloSug = 'q24h'; adminPorDia = 1; }
-        else if (t12_aprox < 6) { intervaloSug = 'q36h'; adminPorDia = 0.67; }
-        else { intervaloSug = 'q48h'; adminPorDia = 0.5; }
-      }
-
-      const doseTotalDia = dosePorToma * adminPorDia;
-
-      resultadoHTML += `
-        <b>Intervalo sugerido:</b> ${intervaloSug}<br>
-        <b>Dose total diária sugerida:</b> ${doseTotalDia.toFixed(0)} mg/dia<br>
-        <b>Dose por toma:</b> ${dosePorToma.toFixed(0)} mg<br>
-      `;
-
-      const alvo = alvoTerap(ab, tipoInfeccao);
-      resultadoHTML += `<b>Alvo terapêutico recomendado:</b> ${alvo}<br>`;
-
-      plotarCurva(C1, ke_aprox, t1, intervaloSug);
-
     } else {
       const ctx = document.getElementById('grafico').getContext('2d');
       if (window.myChart) window.myChart.destroy();
@@ -163,7 +187,7 @@ function calcular() {
 function alvoTerap(ab, tipoInfeccao) {
   const tabelaAlvos = {
     vanco: {
-      "Meningite / SNC": "20-30 mg/L",
+      "Meningite / SNC": "20-25 mg/L",
       "Pneumonia": "15-20 mg/L",
       "Endocardite": "15-20 mg/L",
       "Sepsis": "15-20 mg/L",
@@ -202,18 +226,31 @@ function alvoTerap(ab, tipoInfeccao) {
 
   return tabelaAlvos[ab][tipoInfeccao];
 }
-
 function plotarCurva(C1, ke, t1, intervaloSug) {
   const times = [];
   const concentrations = [];
-  const maxTime = intervaloSug === 'q6h' ? 6 : intervaloSug === 'q8h' ? 8 :
-                  intervaloSug === 'q12h' ? 12 : intervaloSug === 'q24h' ? 24 :
-                  intervaloSug === 'q36h' ? 36 : 48;
+  let maxTime;
 
-  for (let t = 0; t <= maxTime; t += 0.5) {
-    times.push(t);
-    const Ct = C1 * Math.exp(-ke * (t - t1));
-    concentrations.push(Ct);
+  if (intervaloSug === 'Perfusão contínua') {
+    maxTime = 24;
+    for (let t = 0; t <= maxTime; t += 0.5) {
+      times.push(t);
+      concentrations.push(C1);
+    }
+  } else {
+    if (intervaloSug === 'q4h') maxTime = 4;
+    else if (intervaloSug === 'q6h') maxTime = 6;
+    else if (intervaloSug === 'q8h') maxTime = 8;
+    else if (intervaloSug === 'q12h') maxTime = 12;
+    else if (intervaloSug === 'q24h') maxTime = 24;
+    else if (intervaloSug === 'q36h') maxTime = 36;
+    else maxTime = 48;
+
+    for (let t = 0; t <= maxTime; t += 0.5) {
+      times.push(t);
+      const Ct = C1 * Math.exp(-ke * (t - t1));
+      concentrations.push(Ct);
+    }
   }
 
   const ctx = document.getElementById('grafico').getContext('2d');
@@ -248,4 +285,34 @@ function plotarCurva(C1, ke, t1, intervaloSug) {
       }
     }
   });
+}
+
+async function gerarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Capturar texto do resultado
+  const resultado = document.getElementById('resultado');
+
+  await html2canvas(resultado).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const imgProps = doc.getImageProperties(imgData);
+    const pdfWidth = doc.internal.pageSize.getWidth() - 20;
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    doc.addImage(imgData, 'PNG', 10, 10, pdfWidth, pdfHeight);
+  });
+
+  // Adicionar o gráfico
+  const canvasGrafico = document.getElementById('grafico');
+  const graficoData = canvasGrafico.toDataURL('image/png');
+
+  const posY = doc.internal.pageSize.getHeight() - 100;
+
+  doc.addPage();
+  doc.text('Gráfico de Concentração', 10, 20);
+  doc.addImage(graficoData, 'PNG', 10, 30, 180, 120);
+
+  // Salvar PDF
+  doc.save(`PedMonitorMed_${document.getElementById('idDoente').value}.pdf`);
 }
