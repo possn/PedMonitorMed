@@ -289,7 +289,7 @@ function plotarCurva(C1, ke, t1, intervaloSug) {
 
 async function gerarPDF() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF.jsPDF();
 
   // Capturar texto do resultado
   const resultado = document.getElementById('resultado');
